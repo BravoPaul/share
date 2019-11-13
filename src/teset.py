@@ -1,21 +1,16 @@
 import re
+import pandas as pd
 
 
 
-str_l = '标普500医疗保健等权重指数收益率(使用估值汇率折算)*95%+活期存款利率(税后)*5%+标普500医疗保健等权重指数收益率(使用估值汇率折算)*95%+活期存款利率(税后)*5%'
+df = pd.DataFrame(columns=['lib', 'qty1', 'qty2'])
 
-matchObj = re.match(r'(.*?)([0-9]+)%\+(.*?)([0-9]+)%', str_l, re.M | re.I)
+df.loc[0] = [1,2,3]
+df.loc[1] = [1,2,3]
+df.loc[2] = [1,2,3]
+df.loc[3] = [1,2,3]
+df.loc[4] = [1,2,3]
 
-print(matchObj.group(1))
-print(matchObj.group(2))
-print(matchObj.group(3))
-print(matchObj.group(4))
-print(matchObj.lastindex)
+df.loc[8] = [4,5,6]
 
-
-
-
-r1 = re.findall(r'(.*?)([0-9]+)%',str_l)
-
-
-print(r1)
+print(df)

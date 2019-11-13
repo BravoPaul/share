@@ -27,6 +27,12 @@ def market_basic_download(market_code):
     return df
 
 
+def market_value_download(market_code,start_date,end_date):
+    pro = ts.pro_api()
+    df = pro.index_daily(ts_code=market_code, start_date=start_date, end_date=end_date)
+    return df
+
+
 
 if __name__ == '__main__':
     # 下载基金的基本数据
@@ -46,12 +52,21 @@ if __name__ == '__main__':
     # data_jj_value.to_excel(path_jj_value)
 
     # 下载常见的指数，比较各个指数间的不同的差异
-    market_list = ['MSCI','CSI','SSE','SZSE','CICC','SW']
-    df_list = []
-    for one_m in market_list:
-        df_list.append(market_basic_download(one_m))
-    result = pd.concat(df_list)
-    path_output = '../data/data_market/market_index.xlsx'
-    result.to_excel(path_output)
+    # market_list = ['MSCI','CSI','SSE','SZSE','CICC','SW']
+    # df_list = []
+    # for one_m in market_list:
+    #     df_list.append(market_basic_download(one_m))
+    # result = pd.concat(df_list)
+    # path_output = '../data/data_market/market_index.xlsx'
+    # result.to_excel(path_output)
 
+    # 下载可以分析的几种指数的日线行情
+    path_jj_code = '../data/data_jijin/common_fund_index'
+    df_ts_codes = pd.read_csv(path_jj_code)['ts_code'].values.tolist()
+    df_list = []
+    for one_code in df_ts_codes:
+        df_list.append(market_value_download(one_code,'20090101','20191104'))
+    result = pd.concat(df_list)
+    path_output = '../data/data_market/market_value.csv'
+    result.to_csv(path_output)
 
