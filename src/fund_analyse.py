@@ -8,27 +8,22 @@ import matplotlib.pyplot as plt
 # 他由fund_code，时间，开盘价，当天变化价和收盘价 共同决定
 
 
-EARNING_RATE = 0.3
+EARNING_RATE = 0.1
+TOTAL_ARGENT = 300000
+BUY_FIRST_ARGENT = 2000
+LEFT_ARGENT = 300000
+
 
 DF_BUY = pd.DataFrame.from_dict({'date': [], 'argent': [], 'open_value': [], 'close_value': []})
-
 DF_SOLD = pd.DataFrame.from_dict({'date': [], 'argent': [], 'open_value': [], 'close_value': []})
-
 # 记录的是每天以各种价格买的基金的份额变化，站在基金的角度看问题
 # meta:基金号，基金初始化日期，基金初始化日期当天开盘价，基金初始化日期当天收盘价，对基金操作日期，对基金操作当天收盘价，当前持有的基金，具体操作
 DF_BILL = pd.DataFrame.from_dict(
     {'fund_code': [], 'date_init': [], 'init_open_value': [], 'init_close_value': [], 'date_op': [], 'value_op': [],
      'custodian': [], 'custodian_op': []})
-
 # profit分为俩个部分：1，已经卖出的份额得到的利润；2，还没有卖出的份额对应的利润
 DF_PROFIT = pd.DataFrame.from_dict(
     {'date': [], 'fund_code': [], 'profit': [], 'invertissment': [], 'roi': [], 'argent_left': []})
-
-TOTAL_ARGENT = 6000000000
-
-BUY_FIRST_ARGENT = 4000
-
-LEFT_ARGENT = 6000000000
 
 
 # 这个函数决定买不买，买多少钱
@@ -47,8 +42,7 @@ def condition_buy(fund_code, open_value, close_value, dt, week_day):
                 argent = BUY_FIRST_ARGENT
             else:
                 a = (open_value - DF_BUY.iloc[-1]['close_value']) / DF_BUY.iloc[-1]['close_value']
-                # @TOTO：这里有问题，假如我没钱买了，购买为0，但是卖出一些后又有钱了，根据上次的购买记录直接买，又等于0了。所有有问题
-                argent = min(DF_BUY.iloc[-1]['argent'] * (1 - a), LEFT_ARGENT)
+                argent = min(BUY_FIRST_ARGENT * (1 - 20*a), LEFT_ARGENT)
                 index_add = DF_BUY.index.max() + 1
                 index_bill = DF_BILL.index.max() + 1
         DF_BUY.loc[index_add] = [dt, argent, open_value, close_value]
@@ -151,11 +145,11 @@ if __name__ == '__main__':
     data = data.sort_values(by=['trade_date'])
     for index, row in data.iterrows():
         pk_police(row['ts_code'], row['open'], row['close'], row['trade_date'], row['week_day'])
-    path_data_buy = '../data/data_result/buy_history.xlsx'
-    path_data_sold = '../data/data_result/sold_history.xlsx'
-    path_data_bill = '../data/data_result/bill_history.xlsx'
-    path_data_profit = '../data/data_result/profit_history.xlsx'
-    path_data_origin = '../data/data_result/data_origin.xlsx'
+    path_data_buy = '../data/data_ananlyse/buy_history_die_duo.xlsx'
+    path_data_sold = '../data/data_ananlyse/sold_history_die_duo.xlsx'
+    path_data_bill = '../data/data_ananlyse/bill_history_die_duo.xlsx'
+    path_data_profit = '../data/data_ananlyse/profit_history_die_duo.xlsx'
+    path_data_origin = '../data/data_ananlyse/data_origin_die_duo.xlsx'
     DF_BUY.to_excel(path_data_buy)
     DF_SOLD.to_excel(path_data_sold)
     DF_BILL.to_excel(path_data_bill)
