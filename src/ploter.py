@@ -26,7 +26,7 @@ class MyPlot(object):
         print(len(t))
         plt.figure(figsize=(80,40))
         plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
-        plt.gca().xaxis.set_major_locator(mdates.DayLocator(interval=200))
+        plt.gca().xaxis.set_major_locator(mdates.DayLocator(interval=150))
         plt.plot(t, s)
         plt.gcf().autofmt_xdate()
         plt.show()

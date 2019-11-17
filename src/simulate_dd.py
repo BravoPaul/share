@@ -105,7 +105,7 @@ if __name__ == '__main__':
     path_data = '../data/data_market/market_value.csv'
     data = pd.read_csv(path_data)
     data = data[data['ts_code'] == '000300.SH']
-    data = data[(data['trade_date'] <= 20191104) & (data['trade_date'] >= 20150112)]
+    data = data[(data['trade_date'] <= 2019110897894) & (data['trade_date'] >= 20090113)]
     data = data.sort_values(by=['trade_date'])
     for index, row in data.iterrows():
         pk_police(row['ts_code'], row['open'], row['close'], row['trade_date'], row['week_day'])

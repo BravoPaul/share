@@ -1,5 +1,6 @@
 import pandas as pd
 import warnings
+from datetime import datetime
 
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
@@ -9,11 +10,10 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 
 
 class SimulateTrade(object):
-    def __init__(self, data_o, start_date=20150112, end_date=20191104, e_roi=0.15, total_argent=600000):
+    def __init__(self, data_o, e_roi=0.15, total_argent=600000):
         self.e_roi = e_roi
         self.total_argent = total_argent
-        self.data = data_o[(data['trade_date'] >= start_date) & (data['trade_date'] <= end_date)]
-        self.data = self.data.sort_values(by=['trade_date'])
+        self.data = data_o.sort_values(by=['ts_code','trade_date'])
         self.df_buy = pd.DataFrame.from_dict(
             {'ts_code': [], 'date': [], 'argent': [], 'open_value': [], 'close_value': []})
         self.df_sold = pd.DataFrame.from_dict(
@@ -92,17 +92,49 @@ class SimulateTrade(object):
                                          profit / (invertissement + 0.0000000001),
                                          self.left_argent]
 
-    def simulate(self, path_buy, path_sold, path_bill, path_profit):
-        for index, row in self.data.iterrows():
+    def simulate(self, path_buy, path_sold, path_bill, path_profit,start_date = -1, end_date=9999999999):
+        data_tmp = self.data[(self.data['trade_date'] >= start_date) & (self.data['trade_date'] <= end_date)]
+        data_tmp = data_tmp.sort_values(by=['ts_code','trade_date'])
+        for index, row in data_tmp.iterrows():
             ts_code, open_value, close_value, dt, week_day = row['ts_code'], row['open'], row['close'], row[
                 'trade_date'], row['week_day']
             self.sold(ts_code, open_value, close_value, dt)
             self.buy(ts_code, open_value, close_value, dt, week_day)
             self.profit_calculate(ts_code, close_value, dt)
-        self.df_buy.to_excel(path_buy)
-        self.df_sold.to_excel(path_sold)
-        self.df_bill.to_excel(path_bill)
-        self.df_profit.to_excel(path_profit)
+        self.df_buy.to_excel(path_buy+'buy.xlsx')
+        self.df_sold.to_excel(path_sold+'sold.xlsx')
+        self.df_bill.to_excel(path_bill+'bill.xlsx')
+        self.df_profit.to_excel(path_profit+'profit.xlsx')
+        self.df_buy.drop(self.df_buy.index, inplace=True)
+        self.df_sold.drop(self.df_sold.index, inplace=True)
+        self.df_bill.drop(self.df_bill.index, inplace=True)
+        self.df_profit.drop(self.df_profit.index, inplace=True)
+        self.left_argent = self.total_argent
+
+    def simulate_all(self, path_buy, path_sold, path_bill, path_profit,start_date = -1, end_date=9999999999):
+        data_tmp = self.data[(self.data['trade_date'] >= start_date) & (self.data['trade_date'] <= end_date)]
+        now_close_value = data_tmp.iloc[-1]['close']
+        max_close_value = data_tmp['close'].max()
+        min_close_value = data_tmp['close'].min()
+        mean_close_value = data_tmp['close'].mean()
+        data_tmp['trade_date_d'] = data_tmp['trade_date'].map(lambda x: datetime.strptime(str(x), '%Y%m%d').date())
+        data_tmp = data_tmp[data_tmp['trade_date_d'].map(lambda x:(data_tmp.iloc[-1]['trade_date_d'] - x).days>90)]
+        date_max = data_tmp[data_tmp['close']==max_close_value]['trade_date'].values.tolist()
+        date_min = data_tmp[data_tmp['close'] == min_close_value]['trade_date'].values.tolist()
+        # date_mean = data_tmp[data_tmp['close'] == mean_close_value]['trade_date'].values.tolist()
+        # date_now = data_tmp[data_tmp['close'] == now_close_value]['trade_date'].values.tolist()
+        for i,one_d in enumerate(date_max):
+            suffix = 'max_'+str(i)+'_'
+            self.simulate(path_buy+suffix, path_sold+suffix, path_bill+suffix, path_profit+suffix,start_date = one_d, end_date=end_date)
+        for i,one_d in enumerate(date_min):
+            suffix = 'min_' + str(i)+'_'
+            self.simulate(path_buy+suffix, path_sold+suffix, path_bill+suffix, path_profit+suffix,start_date = one_d, end_date=end_date)
+        # for i,one_d in enumerate(date_mean):
+        #     suffix = 'mean_' + str(i)+'_'
+        #     self.simulate(path_buy+suffix, path_sold+suffix, path_bill+suffix, path_profit+suffix,start_date = one_d, end_date=end_date)
+        # for i,one_d in enumerate(date_now):
+        #     suffix = 'now_' + str(i)+'_'
+        #     self.simulate(path_buy+suffix, path_sold+suffix, path_bill+suffix, path_profit+suffix,start_date = one_d, end_date=end_date)
 
 
 class Policy(object):
@@ -120,7 +152,7 @@ class Policy(object):
         else:
             return 0
 
-    # 对当前购买的基金价值进行预估
+    # 对当前购买的基金价值进行预估,你此时对基金的预估都是和你持有的基金在10%以内的
     @classmethod
     def _buy_fv(cls, **param):
         if param['week_day'] == param['week_day_buy']:
@@ -142,14 +174,16 @@ class Policy(object):
         return earn_throld
 
 
+
+
 if __name__ == '__main__':
     # 策略分析 #
     path_data = '../data/data_market/market_value.csv'
     data = pd.read_csv(path_data)
     data = data[data['ts_code'] == '000300.SH']
     st = SimulateTrade(data)
-    path_data_buy = '../data/data_ananlyse/buy_history_.xlsx'
-    path_data_sold = '../data/data_ananlyse/sold_history_.xlsx'
-    path_data_bill = '../data/data_ananlyse/bill_history_.xlsx'
-    path_data_profit = '../data/data_ananlyse/profit_history_2000_015_ban_xin.xlsx'
-    st.simulate(path_data_buy, path_data_sold, path_data_bill, path_data_profit)
+    path_data_buy = '../data/data_ananlyse/'
+    path_data_sold = '../data/data_ananlyse/'
+    path_data_bill = '../data/data_ananlyse/'
+    path_data_profit = '../data/data_ananlyse/'
+    st.simulate_all(path_data_buy, path_data_sold, path_data_bill, path_data_profit)
