@@ -1,5 +1,6 @@
 import pandas as pd
-
+import warnings
+warnings.simplefilter(action='ignore', category=FutureWarning)
 
 e_roi = 0.15
 TOTAL_ARGENT = 600000
@@ -85,7 +86,7 @@ def profit_calculate(fund_code, close_value, dt):
         index_add = 0
     else:
         index_add = DF_PROFIT.index.max() + 1
-    DF_PROFIT.loc[index_add] = [dt, close_value, fund_code, profit, invertissement, profit / invertissement,
+    DF_PROFIT.loc[index_add] = [dt, close_value, fund_code, profit, invertissement, profit / (invertissement+0.000000001),
                                 LEFT_ARGENT]
 
 

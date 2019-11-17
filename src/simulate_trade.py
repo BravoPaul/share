@@ -1,5 +1,7 @@
 import pandas as pd
-import matplotlib
+import warnings
+
+warnings.simplefilter(action='ignore', category=FutureWarning)
 
 
 # 基金的属性并不是仅仅由fund_code决定的，fund_code仅仅决定了他的一部分属性，他是一个每天都变的产品，
@@ -7,7 +9,7 @@ import matplotlib
 
 
 class SimulateTrade(object):
-    def __init__(self, data_o, start_date = 20150112, end_date = 20191104, e_roi=0.15, total_argent=600000):
+    def __init__(self, data_o, start_date=20150112, end_date=20191104, e_roi=0.15, total_argent=600000):
         self.e_roi = e_roi
         self.total_argent = total_argent
         self.data = data_o[(data['trade_date'] >= start_date) & (data['trade_date'] <= end_date)]
@@ -86,20 +88,21 @@ class SimulateTrade(object):
             index_add = 0
         else:
             index_add = self.df_profit.index.max() + 1
-        self.df_profit.loc[index_add] = [dt, close_value, fund_code, profit, invertissement, profit / invertissement,
+        self.df_profit.loc[index_add] = [dt, close_value, fund_code, profit, invertissement,
+                                         profit / (invertissement + 0.0000000001),
                                          self.left_argent]
 
-    def simulate(self, path_data_buy, path_data_sold, path_data_bill, path_data_profit):
+    def simulate(self, path_buy, path_sold, path_bill, path_profit):
         for index, row in self.data.iterrows():
             ts_code, open_value, close_value, dt, week_day = row['ts_code'], row['open'], row['close'], row[
                 'trade_date'], row['week_day']
             self.sold(ts_code, open_value, close_value, dt)
             self.buy(ts_code, open_value, close_value, dt, week_day)
             self.profit_calculate(ts_code, close_value, dt)
-        self.df_buy.to_excel(path_data_buy)
-        self.df_sold.to_excel(path_data_sold)
-        self.df_bill.to_excel(path_data_bill)
-        self.df_profit.to_excel(path_data_profit)
+        self.df_buy.to_excel(path_buy)
+        self.df_sold.to_excel(path_sold)
+        self.df_bill.to_excel(path_bill)
+        self.df_profit.to_excel(path_profit)
 
 
 class Policy(object):
@@ -112,6 +115,14 @@ class Policy(object):
     # 每次等额买，每周都买
     @classmethod
     def _buy_basic(cls, **param):
+        if param['week_day'] == param['week_day_buy']:
+            return param['value_buy']
+        else:
+            return 0
+
+    # 对当前购买的基金价值进行预估
+    @classmethod
+    def _buy_fv(cls, **param):
         if param['week_day'] == param['week_day_buy']:
             return param['value_buy']
         else:
