@@ -176,6 +176,17 @@ class Policy(object):
             return 0
 
     @classmethod
+    def _buy_fv_3(cls, **param):
+        if len(param['bill']) == 0:
+            return param['value_buy']
+        mean_hd_value = param['bill']['init_close_value'].mean()
+        open_value = param['open_value']
+        if param['week_day'] == param['week_day_buy']:
+            return param['value_buy'] * (mean_hd_value / open_value) * (mean_hd_value / open_value) * (mean_hd_value / open_value)
+        else:
+            return 0
+
+    @classmethod
     def sold(cls, policy_name, **param):
         method_call = getattr(globals()['Policy'], policy_name)
         return method_call(**param)
@@ -195,7 +206,7 @@ if __name__ == '__main__':
     data = pd.read_csv(path_data)
     data = data[data['ts_code'] == '000300.SH']
     st = SimulateTrade(data)
-    police_buy_name = '_buy_fv'
+    police_buy_name = '_buy_fv_3'
     police_sold_name = '_sold_basic'
     path_data = '../data/data_ananlyse/'+police_buy_name+police_sold_name
     mkdir = lambda x: os.makedirs(x) if not os.path.exists(x) else True  # 目录是否存在,不存在则创建
