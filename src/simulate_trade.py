@@ -171,7 +171,7 @@ class Policy(object):
         mean_hd_value = param['bill']['init_close_value'].mean()
         open_value = param['open_value']
         if param['week_day'] == param['week_day_buy']:
-            return param['value_buy'] * (mean_hd_value / open_value) *(mean_hd_value / open_value)
+            return param['value_buy'] * (mean_hd_value / open_value) ** 2
         else:
             return 0
 
@@ -182,7 +182,7 @@ class Policy(object):
         mean_hd_value = param['bill']['init_close_value'].mean()
         open_value = param['open_value']
         if param['week_day'] == param['week_day_buy']:
-            return param['value_buy'] * (mean_hd_value / open_value) * (mean_hd_value / open_value) * (mean_hd_value / open_value)
+            return param['value_buy'] * (mean_hd_value / open_value) ** 3
         else:
             return 0
 
