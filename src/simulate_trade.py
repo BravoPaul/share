@@ -11,7 +11,7 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 
 
 class SimulateTrade(object):
-    def __init__(self, data_o, e_roi=0.15, total_argent=600000):
+    def __init__(self, data_o, e_roi=0.15, value_buy=2000, total_argent=600000):
         self.e_roi = e_roi
         self.total_argent = total_argent
         self.data = data_o.sort_values(by=['ts_code', 'trade_date'])
@@ -29,6 +29,7 @@ class SimulateTrade(object):
         self.left_argent = total_argent
         self.police_buy = ''
         self.police_sold = ''
+        self.value_buy = value_buy
 
     def buy(self, fund_code, open_value, close_value, dt, week_day):
         if self.left_argent < 0:
@@ -42,7 +43,8 @@ class SimulateTrade(object):
             index_bill = self.df_bill.index.max() + 1
         # 最傻瓜式的买法
         # argent, self.suffix_buy = Policy.buy('_buy_basic', week_day=week_day, week_day_buy=4, value_buy=2000)
-        argent = Policy.buy(self.police_buy, week_day=week_day, week_day_buy=4, value_buy=2000, bill=self.df_bill,open_value=open_value)
+        argent = Policy.buy(self, week_day=week_day, value_buy=self.value_buy, bill=self.df_bill,
+                            open_value=open_value, dt=dt, close_value=close_value)
         if argent == 0:
             return
         else:
@@ -63,7 +65,7 @@ class SimulateTrade(object):
             else:
                 index_add = self.df_sold.index.max() + 1
             index_bill = self.df_bill.index.max() + 1
-            earn_throld = Policy.sold(self.police_sold, e_roi=self.e_roi, open_value=open_value)
+            earn_throld = Policy.sold(self, e_roi=self.e_roi, open_value=open_value)
             bill_tmp = self.df_bill.sort_values(['date_op']).drop_duplicates(['fund_code', 'date_init'], keep='last')
             bill_tmp = bill_tmp[bill_tmp['custodian'] != 0]
             sold_tmp = bill_tmp[(bill_tmp['init_close_value'] <= earn_throld) & (bill_tmp['fund_code'] == fund_code)]
@@ -97,7 +99,7 @@ class SimulateTrade(object):
                                          profit / (invertissement + 0.0000000001),
                                          self.left_argent]
 
-    def simulate(self, police_buy,police_sold,path_dir, start_date=-1, end_date=9999999999):
+    def simulate(self, police_buy, police_sold, path_dir, start_date=-1, end_date=9999999999):
         self.police_buy = police_buy
         self.police_sold = police_sold
         data_tmp = self.data[(self.data['trade_date'] >= start_date) & (self.data['trade_date'] <= end_date)]
@@ -118,7 +120,7 @@ class SimulateTrade(object):
         self.df_profit.drop(self.df_profit.index, inplace=True)
         self.left_argent = self.total_argent
 
-    def simulate_all(self, police_buy,police_sold,path_dir, start_date=-1, end_date=9999999999):
+    def simulate_all(self, police_buy, police_sold, path_dir, start_date=-1, end_date=9999999999):
         data_tmp = self.data[(self.data['trade_date'] >= start_date) & (self.data['trade_date'] <= end_date)]
         # now_close_value = data_tmp.iloc[-1]['close']
         max_close_value = data_tmp['close'].max()
@@ -132,11 +134,11 @@ class SimulateTrade(object):
         # date_now = data_tmp[data_tmp['close'] == now_close_value]['trade_date'].values.tolist()
         for i, one_d in enumerate(date_max):
             suffix = 'max_' + str(i) + '$$'
-            self.simulate(police_buy,police_sold,path_dir + suffix,
+            self.simulate(police_buy, police_sold, path_dir + suffix,
                           start_date=one_d, end_date=end_date)
         for i, one_d in enumerate(date_min):
             suffix = 'min_' + str(i) + '$$'
-            self.simulate(police_buy,police_sold,path_dir+suffix,
+            self.simulate(police_buy, police_sold, path_dir + suffix,
                           start_date=one_d, end_date=end_date)
         # for i,one_d in enumerate(date_mean):
         #     suffix = 'mean_' + str(i)+'_'
@@ -149,14 +151,14 @@ class SimulateTrade(object):
 class Policy(object):
 
     @classmethod
-    def buy(cls, policy_name, **param):
-        method_call = getattr(globals()['Policy'], policy_name)
-        return method_call(**param)
+    def buy(cls, simu_stat, **param):
+        method_call = getattr(globals()['Policy'], simu_stat.police_buy)
+        return method_call(simu_stat, **param)
 
     # 每次等额买，每周都买
     @classmethod
-    def _buy_basic(cls, **param):
-        if param['week_day'] == param['week_day_buy']:
+    def _buy_basic(cls, simu_stat, **param):
+        if param['week_day'] == 4:
             return param['value_buy']
         else:
             return 0
@@ -165,35 +167,35 @@ class Policy(object):
     # 在预估基金价值的情况下，我选择每天预估一下买，还是只在周四预估去买
     # 为了简单，我先按照周四去预估一次去买
     @classmethod
-    def _buy_fv(cls, **param):
-        if len(param['bill']) == 0:
+    def _buy_fv(cls, simu_stat, **param):
+        if len(simu_stat.df_bill) == 0:
             return param['value_buy']
-        mean_hd_value = param['bill']['init_close_value'].mean()
+        mean_hd_value = simu_stat.df_bill['init_close_value'].mean()
         open_value = param['open_value']
-        if param['week_day'] == param['week_day_buy']:
+        if param['week_day'] == 4:
             return param['value_buy'] * (mean_hd_value / open_value) ** 2
         else:
             return 0
 
     @classmethod
-    def _buy_fv_3(cls, **param):
-        if len(param['bill']) == 0:
+    def _buy_fv_3(cls, simu_stat, **param):
+        if len(simu_stat.df_bill) == 0:
             return param['value_buy']
-        mean_hd_value = param['bill']['init_close_value'].mean()
+        mean_hd_value = simu_stat.df_bill['init_close_value'].mean()
         open_value = param['open_value']
-        if param['week_day'] == param['week_day_buy']:
+        if param['week_day'] == 4:
             return param['value_buy'] * (mean_hd_value / open_value) ** 3
         else:
             return 0
 
     @classmethod
-    def sold(cls, policy_name, **param):
-        method_call = getattr(globals()['Policy'], policy_name)
-        return method_call(**param)
+    def sold(cls, simu_stat, **param):
+        method_call = getattr(globals()['Policy'], simu_stat.police_sold)
+        return method_call(simu_stat, **param)
 
     # 每次达到收益率就卖掉
     @classmethod
-    def _sold_basic(cls, **param):
+    def _sold_basic(cls, simu_stat, **param):
         e_roi = param['e_roi']
         open_value = param['open_value']
         earn_throld = open_value / (e_roi + 1)
@@ -208,7 +210,7 @@ if __name__ == '__main__':
     st = SimulateTrade(data)
     police_buy_name = '_buy_fv_3'
     police_sold_name = '_sold_basic'
-    path_data = '../data/data_ananlyse/'+police_buy_name+police_sold_name
+    path_data = '../data/data_ananlyse/' + police_buy_name + police_sold_name
     mkdir = lambda x: os.makedirs(x) if not os.path.exists(x) else True  # 目录是否存在,不存在则创建
     mkdir(path_data)
-    st.simulate_all(police_buy_name,police_sold_name,path_data+'/')
+    st.simulate_all(police_buy_name, police_sold_name, path_data + '/')
