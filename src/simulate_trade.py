@@ -25,7 +25,7 @@ class SimulateTrade(object):
              'custodian': [], 'custodian_op': []})
         self.df_profit = pd.DataFrame.from_dict(
             {'date': [], 'close_value': [], 'fund_code': [], 'profit': [], 'invertissment': [], 'roi': [],
-             'argent_left': []})
+             'argent_left': [],'argent_use_rate':[]})
         self.left_argent = total_argent
         self.police_buy = ''
         self.police_sold = ''
@@ -65,18 +65,15 @@ class SimulateTrade(object):
             else:
                 index_add = self.df_sold.index.max() + 1
             index_bill = self.df_bill.index.max() + 1
-            earn_throld = Policy.sold(self, e_roi=self.e_roi, open_value=open_value)
-            bill_tmp = self.df_bill.sort_values(['date_op']).drop_duplicates(['fund_code', 'date_init'], keep='last')
-            bill_tmp = bill_tmp[bill_tmp['custodian'] != 0]
-            sold_tmp = bill_tmp[(bill_tmp['init_close_value'] <= earn_throld) & (bill_tmp['fund_code'] == fund_code)]
-            if len(sold_tmp) > 0:
-                argent = sold_tmp['custodian'].sum() * (close_value)
+            sold_tmp = Policy.sold(self, e_roi=self.e_roi, open_value=open_value)
+            if len(sold_tmp)>0:
                 # 策略是全部卖出，能不能根据之前买的股票的涨幅平滑卖出
                 for index, row in sold_tmp.iterrows():
                     self.df_bill.loc[index_bill] = [row['fund_code'], row['date_init'], row['init_open_value'],
                                                     row['init_close_value'], dt, close_value,
                                                     0, -row['custodian']]
                     index_bill += 1
+                argent = sold_tmp['custodian'].sum() * close_value
                 self.df_sold.loc[index_add] = [fund_code, dt, argent, open_value, close_value]
                 if argent < 0:
                     raise ValueError
@@ -97,7 +94,7 @@ class SimulateTrade(object):
             index_add = self.df_profit.index.max() + 1
         self.df_profit.loc[index_add] = [dt, close_value, fund_code, profit, invertissement,
                                          profit / (invertissement + 0.0000000001),
-                                         self.left_argent]
+                                         self.left_argent,1-self.left_argent/self.total_argent]
 
     def simulate(self, police_buy, police_sold, path_dir, start_date=-1, end_date=9999999999):
         self.police_buy = police_buy
@@ -199,7 +196,27 @@ class Policy(object):
         e_roi = param['e_roi']
         open_value = param['open_value']
         earn_throld = open_value / (e_roi + 1)
-        return earn_throld
+        bill_tmp = simu_stat.df_bill.sort_values(['date_op']).drop_duplicates(['fund_code', 'date_init'], keep='last')
+        bill_tmp = bill_tmp[bill_tmp['custodian'] != 0]
+        sold_tmp = bill_tmp[bill_tmp['init_close_value'] <= earn_throld]
+        return sold_tmp
+
+    @classmethod
+    def _sold_fv(cls, simu_stat, **param):
+        if len(simu_stat.df_bill) == 0:
+            return param['value_buy']
+        mean_sd_value = simu_stat.df_sold['close_value'].mean()
+        open_value = param['open_value']
+        if open_value<mean_sd_value:
+            e_roi = param['e_roi']+0.05
+        else:
+            e_roi = param['e_roi']
+        open_value = param['open_value']
+        earn_throld = open_value / (e_roi + 1)
+        bill_tmp = simu_stat.df_bill.sort_values(['date_op']).drop_duplicates(['fund_code', 'date_init'], keep='last')
+        bill_tmp = bill_tmp[bill_tmp['custodian'] != 0]
+        sold_tmp = bill_tmp[bill_tmp['init_close_value'] <= earn_throld]
+        return sold_tmp
 
 
 if __name__ == '__main__':
@@ -209,7 +226,7 @@ if __name__ == '__main__':
     data = data[data['ts_code'] == '000300.SH']
     st = SimulateTrade(data)
     police_buy_name = '_buy_fv_3'
-    police_sold_name = '_sold_basic'
+    police_sold_name = '_sold_fv'
     path_data = '../data/data_ananlyse/' + police_buy_name + police_sold_name
     mkdir = lambda x: os.makedirs(x) if not os.path.exists(x) else True  # 目录是否存在,不存在则创建
     mkdir(path_data)
