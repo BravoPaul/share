@@ -221,6 +221,23 @@ class Policy(object):
         sold_tmp = bill_tmp[bill_tmp['init_close_value'] <= earn_throld]
         return sold_tmp
 
+    @classmethod
+    def _sold_fv(cls, simu_stat, **param):
+        if len(simu_stat.df_bill) == 0:
+            return param['value_buy']
+        mean_sd_value = simu_stat.df_sold['close_value'].mean()
+        open_value = param['open_value']
+        if open_value < mean_sd_value:
+            e_roi = param['e_roi'] + 0.05
+        else:
+            e_roi = param['e_roi']
+        open_value = param['open_value']
+        earn_throld = open_value / (e_roi + 1)
+        bill_tmp = simu_stat.df_bill.sort_values(['date_op']).drop_duplicates(['fund_code', 'date_init'], keep='last')
+        bill_tmp = bill_tmp[bill_tmp['custodian'] != 0]
+        sold_tmp = bill_tmp[bill_tmp['init_close_value'] <= earn_throld]
+        return sold_tmp
+
 
 if __name__ == '__main__':
     # 策略分析 #
@@ -229,7 +246,7 @@ if __name__ == '__main__':
     data = data[data['ts_code'] == '000300.SH']
     st = SimulateTrade(data)
     police_buy_name = '_buy_fv_3'
-    police_sold_name = '_sold_fv_new'
+    police_sold_name = '_sold_fv'
     path_data = '../data/data_ananlyse/' + police_buy_name + police_sold_name
     mkdir = lambda x: os.makedirs(x) if not os.path.exists(x) else True  # 目录是否存在,不存在则创建
     mkdir(path_data)

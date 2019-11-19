@@ -10,24 +10,24 @@ E_ROI = 0.1
 # 策略投资大小以及手头可流动资金
 # 投资到截止日期的盈利
 class FundEvaluator(object):
-    def __init__(self, ts_code,data_o,e_roi=0.1):
+    def __init__(self, ts_code=None, data_o=None, e_roi=0.1):
         self.e_roi = e_roi
         self.ts_code = ts_code
-        self.data = data_o
-        self.__basic_value_cal()
+        self.data = data_o.sort_values(by=['ts_code', 'trade_date'])
 
-    def __basic_value_cal(self):
-        self.data['roi_basic'] = (self.data['close_value'] - self.data.iloc[0]['close_value']) / self.data.iloc[0]['close_value']
+    def __basic_value_cal(self, start_date,end_date):
+        self.data = self.data[(self.data['trade_date'] >= start_date) & (self.data['trade_date'] <= end_date)]
+        self.data['roi_basic'] = (self.data['close'] - self.data.iloc[0]['close']) / self.data.iloc[0]['close']
         self.basic_roi = self.data['roi_basic'].mean()
         self.final_roi = self.data.iloc[-1]['roi_basic']
         self.std_roi = self.data['roi_basic'].std()
 
-    def alpha_beta_cal(self):
-        x = self.data
+    def alpha_beta_cal(self, x):
+        self.__basic_value_cal(x.iloc[0]['date'],x.iloc[-1]['date'])
         return x['roi'].mean() - self.basic_roi, x['roi'].std() / self.std_roi
 
-    def show_details(self):
-        x = self.data
+    def show_details(self, x):
+        self.__basic_value_cal(x.iloc[0]['date'],x.iloc[-1]['date'])
         # 利润
         final_profit = x.iloc[-1]['profit']
         # ROI
@@ -36,22 +36,23 @@ class FundEvaluator(object):
         mean_invertissment = x.iloc[-1]['invertissment']
         mean_roi = x['roi'].mean()
         # 符合预期的投入产出比占总的天数
-        num_roi_police = len(x[x['roi'] > self.e_roi]) / len(x)
-        num_roi_basic = len(x[x['roi_basic'] > self.e_roi]) / len(x)
-        # 投入产出比的标准差
         std_roi = x['roi'].std()
+        num_roi_police = len(x[x['roi'] > self.e_roi]) / len(x)
+        num_roi_basic = len(self.data['roi_basic'][self.data['roi_basic'] > self.e_roi]) / len(x)
+        # 投入产出比的标准差
         # 最多亏损数
         max_loss = x['profit'].min()
         print('final_profit:  ', final_profit)
         print('final_roi:  ', final_roi)
         print('mean_invertissment:  ', mean_invertissment)
-        print('mean_roi_police:  ', mean_roi,',mean_roi_basic:  ',self.basic_roi)
-        print('num_roi_police:  ', num_roi_police,',num_roi_basic:  ',num_roi_basic)
-        print('std_roi_police:  ', std_roi,',std_roi_basic:  ',self.std_roi)
+        print('mean_roi_police:  ', mean_roi, ',mean_roi_basic:  ', self.basic_roi)
+        print('num_roi_police:  ', num_roi_police, ',num_roi_basic:  ', num_roi_basic)
+        print('std_roi_police:  ', std_roi, ',std_roi_basic:  ', self.std_roi)
         print('max_loss:  ', max_loss)
 
-    def bull_market(self, x):
-        pass
+    @staticmethod
+    def compare(x1, x2):
+        return x1['roi'].mean() - x2['roi'].mean(), x1['roi'].std() / x2['roi'].std()
 
     def bear_market(self, x):
         pass
@@ -71,20 +72,23 @@ class FundEvaluator(object):
 # 手中流动资金最小值: min_argent_main
 
 
-
-
 if __name__ == '__main__':
-
-
-    path_input = '../data/data_ananlyse/profit_history_2000_015_ban.xlsx'
+    path_data = '../data/data_market/market_value.csv'
+    data_o = pd.read_csv(path_data)
+    data_o = data_o[data_o['ts_code'] == '000300.SH']
+    fe = FundEvaluator('000300.SH', data_o)
+    path_input = '../data/data_ananlyse/_buy_fv_3_sold_fv_new/max_0$$profit$$_buy_fv_3__sold_fv_new$$.xlsx'
     data = pd.read_excel(path_input)
-    fe = FundEvaluator('000300.SH',  data)
-    alpha, beta = fe.alpha_beta_cal()
-    print('alpha: ',alpha)
-    print('beta: ',beta)
-    fe.show_details()
+    alpha, beta = fe.alpha_beta_cal(data)
+    print('alpha: ', alpha)
+    print('beta: ', beta)
+    fe.show_details(data)
+
+    path_input = '../data/data_ananlyse/_buy_fv_3_sold_fv/max_0$$profit$$_buy_fv_3__sold_fv$$.xlsx'
+    data2 = pd.read_excel(path_input)
+
+    alpha, beta = fe.compare(data,data2)
+    print('alpha: ', alpha)
+    print('beta: ', beta)
 
     # buy_value_analyse(data_police,0.1)
-
-
-
