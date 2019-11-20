@@ -1,4 +1,6 @@
 import pandas as pd
+import os
+import re
 
 E_ROI = 0.1
 
@@ -15,7 +17,7 @@ class FundEvaluator(object):
         self.ts_code = ts_code
         self.data = data_o.sort_values(by=['ts_code', 'trade_date'])
 
-    def __basic_value_cal(self, start_date,end_date):
+    def __basic_value_cal(self, start_date, end_date):
         self.data = self.data[(self.data['trade_date'] >= start_date) & (self.data['trade_date'] <= end_date)]
         self.data['roi_basic'] = (self.data['close'] - self.data.iloc[0]['close']) / self.data.iloc[0]['close']
         self.basic_roi = self.data['roi_basic'].mean()
@@ -23,11 +25,32 @@ class FundEvaluator(object):
         self.std_roi = self.data['roi_basic'].std()
 
     def alpha_beta_cal(self, x):
-        self.__basic_value_cal(x.iloc[0]['date'],x.iloc[-1]['date'])
+        self.__basic_value_cal(x.iloc[0]['date'], x.iloc[-1]['date'])
         return x['roi'].mean() - self.basic_roi, x['roi'].std() / self.std_roi
 
+    @staticmethod
+    def get_evaluate(x, e_roi):
+        final_profit = x.iloc[-1]['profit']
+        final_roi = x.iloc[-1]['roi']
+        mean_invertissment = x.iloc[-1]['invertissment']
+        mean_roi = x['roi'].mean()
+        std_roi = x['roi'].std()
+        num_roi_police = len(x[x['roi'] > e_roi]) / len(x)
+        max_loss = x['profit'].min()
+        mean_argent_use = x['argent_use_rate'].mean()
+        return pd.DataFrame.from_dict({
+            'final_profit': [final_profit],
+            'final_roi': [final_roi],
+            'mean_invertissment': [mean_invertissment],
+            'mean_roi': [mean_roi],
+            'std_roi': [std_roi],
+            'num_roi_police': [num_roi_police],
+            'max_loss': [max_loss],
+            'mean_argent_use': [mean_argent_use]
+        })
+
     def show_details(self, x):
-        self.__basic_value_cal(x.iloc[0]['date'],x.iloc[-1]['date'])
+        self.__basic_value_cal(x.iloc[0]['date'], x.iloc[-1]['date'])
         # 利润
         final_profit = x.iloc[-1]['profit']
         # ROI
@@ -61,34 +84,50 @@ class FundEvaluator(object):
         pass
 
 
-# 这个函数负责分析每次买多少的策略进行评估：
-# 收益率平均值：mean_profit
-# 投资总计收入: final_profit
-# ROI稳定在10%以上的天数：num_roi
-# ROI是多少: mean_roi
-# 手中流动资金平均值: mean_argent_main
-# roi波动: std_roi
-# 最大赔钱: max_loss
-# 手中流动资金最小值: min_argent_main
+def evaluate_all(dir_result):
+    result_ev = []
+    result_file = []
+    for subdir, dirs, files in os.walk(dir_result):
+        for file in files:
+            open_file = os.path.join(subdir, file)
+            file_detail = re.split('\$\$', open_file.split('/')[-1])
+            if file_detail[1] == 'profit':
+                data = pd.read_excel(open_file)
+                one_evaluate = FundEvaluator.get_evaluate(data, 0.1)
+                result_ev.append(one_evaluate)
+                starting_point = file_detail[0]
+                policy = file_detail[2]
+                result_file.append(pd.DataFrame.from_dict({'policy': [policy], 'starting_point': [starting_point]}))
+    if (len(result_ev) > 0) & (len(result_ev) == len(result_file)):
+        df_ev = pd.concat(result_ev)
+        df_file = pd.concat(result_file)
+        df_result = pd.concat([df_file, df_ev], axis=1)
+        return df_result
+    return None
 
 
 if __name__ == '__main__':
-    path_data = '../data/data_market/market_value.csv'
-    data_o = pd.read_csv(path_data)
-    data_o = data_o[data_o['ts_code'] == '000300.SH']
-    fe = FundEvaluator('000300.SH', data_o)
-    path_input = '../data/data_ananlyse/_buy_fv_3_sold_fv_new/max_0$$profit$$_buy_fv_3__sold_fv_new$$.xlsx'
-    data = pd.read_excel(path_input)
-    alpha, beta = fe.alpha_beta_cal(data)
-    print('alpha: ', alpha)
-    print('beta: ', beta)
-    fe.show_details(data)
-
-    path_input = '../data/data_ananlyse/_buy_fv_3_sold_fv/max_0$$profit$$_buy_fv_3__sold_fv$$.xlsx'
-    data2 = pd.read_excel(path_input)
-
-    alpha, beta = fe.compare(data,data2)
-    print('alpha: ', alpha)
-    print('beta: ', beta)
+    data_output = '../data/data_analyse_result/result.xlsx'
+    result = evaluate_all('../data/data_ananlyse')
+    print(result)
+    result.to_csv(data_output)
+    #
+    # path_data = '../data/data_market/market_value.csv'
+    # data_o = pd.read_csv(path_data)
+    # data_o = data_o[data_o['ts_code'] == '000300.SH']
+    # fe = FundEvaluator('000300.SH', data_o)
+    # path_input = '../data/data_ananlyse/_buy_fv_3_sold_fv_new/max_0$$profit$$_buy_fv_3__sold_fv_new$$.xlsx'
+    # data = pd.read_excel(path_input)
+    # alpha, beta = fe.alpha_beta_cal(data)
+    # print('alpha: ', alpha)
+    # print('beta: ', beta)
+    # fe.show_details(data)
+    #
+    # path_input = '../data/data_ananlyse/_buy_fv_3_sold_fv/max_0$$profit$$_buy_fv_3__sold_fv$$.xlsx'
+    # data2 = pd.read_excel(path_input)
+    #
+    # alpha, beta = fe.compare(data, data2)
+    # print('alpha: ', alpha)
+    # print('beta: ', beta)
 
     # buy_value_analyse(data_police,0.1)
