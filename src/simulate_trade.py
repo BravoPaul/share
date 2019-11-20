@@ -246,7 +246,7 @@ if __name__ == '__main__':
     data = data[data['ts_code'] == '000300.SH']
     st = SimulateTrade(data)
     police_buy_name = '_buy_fv_3'
-    police_sold_name = '_sold_fv'
+    police_sold_name = '_sold_basic'
     path_data = '../data/data_ananlyse/' + police_buy_name + police_sold_name
     mkdir = lambda x: os.makedirs(x) if not os.path.exists(x) else True  # 目录是否存在,不存在则创建
     mkdir(path_data)
