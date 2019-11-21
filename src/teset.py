@@ -1,17 +1,14 @@
-import re
-import pandas as pd
-
-
-d =  pd.DataFrame.from_dict({
-            'final_profit': [1],
-            'final_roi': [1],
-            'mean_invertissment': [1],
-            'mean_roi': [1],
-            'std_roi': [1],
-            'num_roi_police': [1],
-            'max_loss': [1],
-            'mean_argent_use': [1]
-        })
-
-
-print(d)
+province_id,city_id,city_tier,pred_age_level,pred_gender,tm_level,vip_level_name,\
+purchase_power,tkm_level,group_type_new,login_day_1m,login_day_2m,login_day_3m,\
+login_day_6m_standard,login_day_6m,login_day_1y,day_sign_day_1m,day_sign_day_2m,\
+day_sign_day_3m,day_sign_day_6m,day_sign_day_1y,pay_ord_cnt_1d,pay_ord_cnt_3d,\
+pay_ord_cnt_1w,pay_ord_cnt_2w,pay_ord_cnt_1m,pay_ord_cnt_2m,pay_ord_cnt_3m,\
+pay_ord_cnt_6m,pay_ord_cnt_1y,pay_ord_cnt_td,pay_ord_amt_1d,pay_ord_amt_3d,\
+pay_ord_amt_1w,pay_ord_amt_2w,pay_ord_amt_1m,pay_ord_amt_2m,pay_ord_amt_3m,\
+pay_ord_amt_6m,pay_ord_amt_1y,pay_ord_amt_td,pay_tkt_cnt_1d,pay_tkt_cnt_3d,\
+pay_tkt_cnt_1w_001,pay_tkt_cnt_1m_001,pay_tkt_cnt_6m_001,pay_tkt_cnt_std_001,\
+discount_ord_cnt_1m,discount_ord_cnt_2m,discount_ord_cnt_3m,discount_ord_cnt_6m,\
+discount_ord_cnt_1y,allowance_amt_6m_004_standard,exp_valid_num_30d,\
+click_valid_num_30d,buy_valid_num_30d,exp_ds_num_30d,click_ds_num_30d,\
+week_day,allowance_amt_1w_001,allowance_amt_1m_004,allowance_amt_6m_004,\
+allowance_amt_std_004,click_ratio_30d,buy_ratio_30d,ll_channel_name

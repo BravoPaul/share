@@ -1,6 +1,7 @@
 import pandas as pd
 import os
 import re
+import xlsxwriter
 
 E_ROI = 0.1
 
@@ -110,7 +111,7 @@ if __name__ == '__main__':
     data_output = '../data/data_analyse_result/result.xlsx'
     result = evaluate_all('../data/data_ananlyse')
     print(result)
-    result.to_csv(data_output)
+    result.to_excel(data_output)
     #
     # path_data = '../data/data_market/market_value.csv'
     # data_o = pd.read_csv(path_data)
