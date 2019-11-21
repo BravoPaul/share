@@ -1,7 +1,4 @@
 import platform
+import math
 
-
-
-print(platform.system())
-print(platform.win32_ver())
-print(platform.platform())
+print(math.fabs(0.1 - 1))

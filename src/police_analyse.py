@@ -2,6 +2,7 @@ import pandas as pd
 import os
 import re
 import platform
+from datetime import datetime
 
 E_ROI = 0.1
 
@@ -39,6 +40,8 @@ class FundEvaluator(object):
         num_roi_police = len(x[x['roi'] > e_roi]) / len(x)
         max_loss = x['profit'].min()
         mean_argent_use = x['argent_use_rate'].mean()
+        from_to = str(x.iloc[0]['date']) + '_' + str(x.iloc[-1]['date'])
+        duree = (datetime.strptime(str(x.iloc[-1]['date']), "%Y%m%d") - datetime.strptime(str(x.iloc[0]['date']), "%Y%m%d")).days
         return pd.DataFrame.from_dict({
             'final_profit': [final_profit],
             'final_roi': [final_roi],
@@ -47,7 +50,9 @@ class FundEvaluator(object):
             'std_roi': [std_roi],
             'num_roi_police': [num_roi_police],
             'max_loss': [max_loss],
-            'mean_argent_use': [mean_argent_use]
+            'mean_argent_use': [mean_argent_use],
+            'from_to': [from_to],
+            'duree': [duree]
         })
 
     def show_details(self, x):
@@ -91,7 +96,7 @@ def evaluate_all(dir_result):
     for subdir, dirs, files in os.walk(dir_result):
         for file in files:
             open_file = os.path.join(subdir, file)
-            if platform.system()=='Windows':
+            if platform.system() == 'Windows':
                 file_detail = re.split('\$\$', open_file.split('\\')[-1])
             else:
                 file_detail = re.split('\$\$', open_file.split('/')[-1])

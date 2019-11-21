@@ -2,6 +2,7 @@ import pandas as pd
 import warnings
 from datetime import datetime
 import os
+import math
 
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
@@ -11,7 +12,7 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 
 
 class SimulateTrade(object):
-    def __init__(self, data_o, e_roi=0.15, value_buy=2000, total_argent=6000000):
+    def __init__(self, data_o, e_roi=0.15, value_buy=2000, total_argent=300000):
         self.e_roi = e_roi
         self.total_argent = total_argent
         self.data = data_o.sort_values(by=['ts_code', 'trade_date'])
@@ -119,30 +120,28 @@ class SimulateTrade(object):
 
     def simulate_all(self, police_buy, police_sold, path_dir, start_date=-1, end_date=9999999999):
         data_tmp = self.data[(self.data['trade_date'] >= start_date) & (self.data['trade_date'] <= end_date)]
-        # now_close_value = data_tmp.iloc[-1]['close']
+        now_close_value = data_tmp.iloc[-1]['close']
         max_close_value = data_tmp['close'].max()
         min_close_value = data_tmp['close'].min()
         # mean_close_value = data_tmp['close'].mean()
         data_tmp['trade_date_d'] = data_tmp['trade_date'].map(lambda x: datetime.strptime(str(x), '%Y%m%d').date())
         data_tmp = data_tmp[data_tmp['trade_date_d'].map(lambda x: (data_tmp.iloc[-1]['trade_date_d'] - x).days > 90)]
-        date_max = data_tmp[data_tmp['close'] == max_close_value]['trade_date'].values.tolist()
-        date_min = data_tmp[data_tmp['close'] == min_close_value]['trade_date'].values.tolist()
+        date_max = data_tmp[data_tmp['close'] == max_close_value].iloc[0]['trade_date']
+        date_min = data_tmp[data_tmp['close'] == min_close_value].iloc[0]['trade_date']
         # date_mean = data_tmp[data_tmp['close'] == mean_close_value]['trade_date'].values.tolist()
-        # date_now = data_tmp[data_tmp['close'] == now_close_value]['trade_date'].values.tolist()
-        for i, one_d in enumerate(date_max):
-            suffix = 'max_' + str(i) + '$$'
-            self.simulate(police_buy, police_sold, path_dir + suffix,
-                          start_date=one_d, end_date=end_date)
-        for i, one_d in enumerate(date_min):
-            suffix = 'min_' + str(i) + '$$'
-            self.simulate(police_buy, police_sold, path_dir + suffix,
-                          start_date=one_d, end_date=end_date)
-        # for i,one_d in enumerate(date_mean):
-        #     suffix = 'mean_' + str(i)+'_'
-        #     self.simulate(path_buy+suffix, path_sold+suffix, path_bill+suffix, path_profit+suffix,start_date = one_d, end_date=end_date)
-        # for i,one_d in enumerate(date_now):
-        #     suffix = 'now_' + str(i)+'_'
-        #     self.simulate(path_buy+suffix, path_sold+suffix, path_bill+suffix, path_profit+suffix,start_date = one_d, end_date=end_date)
+        date_now = data_tmp[data_tmp['close'].map(lambda x: math.fabs(x / now_close_value - 1) < 0.05)].iloc[0][
+            'trade_date']
+        suffix = 'max' + '$$'
+        self.simulate(police_buy, police_sold, path_dir + suffix,
+                      start_date=date_max, end_date=end_date)
+
+        suffix = 'min' + '$$'
+        self.simulate(police_buy, police_sold, path_dir + suffix,
+                      start_date=date_min, end_date=end_date)
+
+        suffix = 'now' + '$$'
+        self.simulate(police_buy, police_sold, path_dir + suffix,
+                      start_date=date_now, end_date=end_date)
 
 
 class Policy(object):
@@ -201,6 +200,17 @@ class Policy(object):
         if len(simu_stat.df_bill) == 0:
             return param['value_buy']
         mean_hd_value = simu_stat.df_bill['init_close_value'].mean()
+        open_value = param['open_value']
+        if param['week_day'] == 4:
+            return param['value_buy'] * (mean_hd_value / open_value) ** 4
+        else:
+            return 0
+
+    @classmethod
+    def _buy_fv_4_min(cls, simu_stat, **param):
+        if len(simu_stat.df_bill) == 0:
+            return param['value_buy']
+        mean_hd_value = simu_stat.df_bill['init_close_value'].min()
         open_value = param['open_value']
         if param['week_day'] == 4:
             return param['value_buy'] * (mean_hd_value / open_value) ** 4
@@ -267,7 +277,7 @@ if __name__ == '__main__':
     data = pd.read_csv(path_data)
     data = data[data['ts_code'] == '000300.SH']
     st = SimulateTrade(data)
-    police_buy_name = '_buy_fv_10'
+    police_buy_name = '_buy_basic'
     police_sold_name = '_sold_fv'
     path_data = '../data/data_ananlyse/' + police_buy_name + police_sold_name
     mkdir = lambda x: os.makedirs(x) if not os.path.exists(x) else True  # 目录是否存在,不存在则创建
