@@ -11,7 +11,7 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 
 
 class SimulateTrade(object):
-    def __init__(self, data_o, e_roi=0.15, value_buy=2000, total_argent=600000):
+    def __init__(self, data_o, e_roi=0.15, value_buy=2000, total_argent=6000000):
         self.e_roi = e_roi
         self.total_argent = total_argent
         self.data = data_o.sort_values(by=['ts_code', 'trade_date'])
@@ -186,6 +186,28 @@ class Policy(object):
             return 0
 
     @classmethod
+    def _buy_fv_10(cls, simu_stat, **param):
+        if len(simu_stat.df_bill) == 0:
+            return param['value_buy']
+        mean_hd_value = simu_stat.df_bill['init_close_value'].mean()
+        open_value = param['open_value']
+        if param['week_day'] == 4:
+            return param['value_buy'] * (mean_hd_value / open_value) ** 10
+        else:
+            return 0
+
+    @classmethod
+    def _buy_fv_4(cls, simu_stat, **param):
+        if len(simu_stat.df_bill) == 0:
+            return param['value_buy']
+        mean_hd_value = simu_stat.df_bill['init_close_value'].mean()
+        open_value = param['open_value']
+        if param['week_day'] == 4:
+            return param['value_buy'] * (mean_hd_value / open_value) ** 4
+        else:
+            return 0
+
+    @classmethod
     def sold(cls, simu_stat, **param):
         method_call = getattr(globals()['Policy'], simu_stat.police_sold)
         return method_call(simu_stat, **param)
@@ -245,8 +267,8 @@ if __name__ == '__main__':
     data = pd.read_csv(path_data)
     data = data[data['ts_code'] == '000300.SH']
     st = SimulateTrade(data)
-    police_buy_name = '_buy_fv_3'
-    police_sold_name = '_sold_basic'
+    police_buy_name = '_buy_fv_10'
+    police_sold_name = '_sold_fv'
     path_data = '../data/data_ananlyse/' + police_buy_name + police_sold_name
     mkdir = lambda x: os.makedirs(x) if not os.path.exists(x) else True  # 目录是否存在,不存在则创建
     mkdir(path_data)

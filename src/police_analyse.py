@@ -91,7 +91,7 @@ def evaluate_all(dir_result):
     for subdir, dirs, files in os.walk(dir_result):
         for file in files:
             open_file = os.path.join(subdir, file)
-            file_detail = re.split('\$\$', open_file.split('/')[-1])
+            file_detail = re.split('\$\$', open_file.split('\\')[-1])
             if file_detail[1] == 'profit':
                 data = pd.read_excel(open_file)
                 one_evaluate = FundEvaluator.get_evaluate(data, 0.1)
