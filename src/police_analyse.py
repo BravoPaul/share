@@ -1,7 +1,7 @@
 import pandas as pd
 import os
 import re
-import xlsxwriter
+import platform
 
 E_ROI = 0.1
 
@@ -91,7 +91,10 @@ def evaluate_all(dir_result):
     for subdir, dirs, files in os.walk(dir_result):
         for file in files:
             open_file = os.path.join(subdir, file)
-            file_detail = re.split('\$\$', open_file.split('\\')[-1])
+            if platform.system()=='Window':
+                file_detail = re.split('\$\$', open_file.split('\\')[-1])
+            else:
+                file_detail = re.split('\$\$', open_file.split('/')[-1])
             if file_detail[1] == 'profit':
                 data = pd.read_excel(open_file)
                 one_evaluate = FundEvaluator.get_evaluate(data, 0.1)
