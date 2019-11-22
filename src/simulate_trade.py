@@ -197,6 +197,17 @@ class Policy(object):
             return 0
 
     @classmethod
+    def _buy_fv_if(cls, simu_stat, **param):
+        if len(simu_stat.df_bill) == 0:
+            return param['value_buy']
+        mean_hd_value = simu_stat.df_bill['init_close_value'].mean()
+        open_value = param['open_value']
+        if param['week_day'] == 4:
+            return param['value_buy'] * (mean_hd_value / open_value) ** 10
+        else:
+            return 0
+
+    @classmethod
     def _buy_fv_4(cls, simu_stat, **param):
         if len(simu_stat.df_bill) == 0:
             return param['value_buy']
