@@ -12,7 +12,7 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 
 
 class SimulateTrade(object):
-    def __init__(self, data_o, e_roi=0.15, value_buy=2000, total_argent=300000):
+    def __init__(self, data_o, e_roi=0.15, value_buy=6250, total_argent=300000):
         self.e_roi = e_roi
         self.total_argent = total_argent
         self.data = data_o.sort_values(by=['ts_code', 'trade_date'])
@@ -39,7 +39,6 @@ class SimulateTrade(object):
             index_add = 0
             index_bill = 0
         else:
-
             index_add = self.df_buy.index.max() + 1
             index_bill = self.df_bill.index.max() + 1
         # 最傻瓜式的买法
@@ -163,7 +162,7 @@ class Policy(object):
     # 在预估基金价值的情况下，我选择每天预估一下买，还是只在周四预估去买
     # 为了简单，我先按照周四去预估一次去买
     @classmethod
-    def _buy_fv(cls, simu_stat, **param):
+    def _buy_fv_func(cls, simu_stat, fois, **param):
         if len(simu_stat.df_bill) == 0:
             return param['value_buy']
         mean_hd_value = simu_stat.df_bill['init_close_value'].mean()
@@ -174,48 +173,20 @@ class Policy(object):
             return 0
 
     @classmethod
+    def _buy_fv(cls, simu_stat, **param):
+        cls._buy_fv_func(simu_stat, 2, **param)
+
+    @classmethod
     def _buy_fv_3(cls, simu_stat, **param):
-        if len(simu_stat.df_bill) == 0:
-            return param['value_buy']
-        mean_hd_value = simu_stat.df_bill['init_close_value'].mean()
-        open_value = param['open_value']
-        if param['week_day'] == 4:
-            return param['value_buy'] * (mean_hd_value / open_value) ** 3
-        else:
-            return 0
-
-    @classmethod
-    def _buy_fv_10(cls, simu_stat, **param):
-        if len(simu_stat.df_bill) == 0:
-            return param['value_buy']
-        mean_hd_value = simu_stat.df_bill['init_close_value'].mean()
-        open_value = param['open_value']
-        if param['week_day'] == 4:
-            return param['value_buy'] * (mean_hd_value / open_value) ** 10
-        else:
-            return 0
-
-    @classmethod
-    def _buy_fv_if(cls, simu_stat, **param):
-        if len(simu_stat.df_bill) == 0:
-            return param['value_buy']
-        mean_hd_value = simu_stat.df_bill['init_close_value'].mean()
-        open_value = param['open_value']
-        if param['week_day'] == 4:
-            return param['value_buy'] * (mean_hd_value / open_value) ** 10
-        else:
-            return 0
+        cls._buy_fv_func(simu_stat, 3, **param)
 
     @classmethod
     def _buy_fv_4(cls, simu_stat, **param):
-        if len(simu_stat.df_bill) == 0:
-            return param['value_buy']
-        mean_hd_value = simu_stat.df_bill['init_close_value'].mean()
-        open_value = param['open_value']
-        if param['week_day'] == 4:
-            return param['value_buy'] * (mean_hd_value / open_value) ** 4
-        else:
-            return 0
+        cls._buy_fv_func(simu_stat, 4, **param)
+
+    @classmethod
+    def _buy_fv_10(cls, simu_stat, **param):
+        cls._buy_fv_func(simu_stat, 10, **param)
 
     @classmethod
     def _buy_fv_4_min(cls, simu_stat, **param):
@@ -289,8 +260,8 @@ if __name__ == '__main__':
     data = data[data['ts_code'] == '000300.SH']
     st = SimulateTrade(data)
     police_buy_name = '_buy_basic'
-    police_sold_name = '_sold_fv'
-    path_data = '../data/data_ananlyse/' + police_buy_name + police_sold_name
+    police_sold_name = '_sold_basic'
+    path_data = '../data/data_ananlyse_6250/' + police_buy_name + police_sold_name
     mkdir = lambda x: os.makedirs(x) if not os.path.exists(x) else True  # 目录是否存在,不存在则创建
     mkdir(path_data)
     st.simulate_all(police_buy_name, police_sold_name, path_data + '/')
