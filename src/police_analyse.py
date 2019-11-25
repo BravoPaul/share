@@ -34,7 +34,8 @@ class FundEvaluator(object):
     def get_evaluate(x, e_roi):
         final_profit = x.iloc[-1]['profit']
         final_roi = x.iloc[-1]['roi']
-        mean_invertissment = x.iloc[-1]['invertissment']
+        final_invertissment = x.iloc[-1]['invertissment']
+        mean_invertissment = x.iloc[-1]['invertissment']/len(x)
         mean_roi = x['roi'].mean()
         std_roi = x['roi'].std()
         num_roi_police = len(x[x['roi'] > e_roi]) / len(x)
@@ -45,6 +46,7 @@ class FundEvaluator(object):
         return pd.DataFrame.from_dict({
             'final_profit': [final_profit],
             'final_roi': [final_roi],
+            'final_invertissment': [final_invertissment],
             'mean_invertissment': [mean_invertissment],
             'mean_roi': [mean_roi],
             'std_roi': [std_roi],
@@ -117,8 +119,7 @@ def evaluate_all(dir_result):
 
 if __name__ == '__main__':
     data_output = '../data/data_analyse_result/result.xlsx'
-    result = evaluate_all('../data/data_ananlyse')
-    result = result.sort_values(by = ['starting_point','final_profit'],ascending = False)
+    result = evaluate_all('../data/data_ananlyse/')
     print(result)
     result.to_excel(data_output)
     #

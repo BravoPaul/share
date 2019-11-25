@@ -1,4 +1,4 @@
 import platform
 import math
 
-print(math.fabs(0.1 - 1))
+print(math.exp(1))
