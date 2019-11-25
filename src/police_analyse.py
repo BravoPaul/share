@@ -118,6 +118,7 @@ def evaluate_all(dir_result):
 if __name__ == '__main__':
     data_output = '../data/data_analyse_result/result.xlsx'
     result = evaluate_all('../data/data_ananlyse')
+    result = result.sort_values(by = ['starting_point','final_profit'],ascending = False)
     print(result)
     result.to_excel(data_output)
     #
