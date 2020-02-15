@@ -33,8 +33,8 @@ class MyPlot(object):
 
 
 if __name__ == '__main__':
-    path_data = '../data/data_market/market_value.csv'
+    path_data = '../data/data_market/创业板50.csv'
     data = pd.read_csv(path_data)
-    data = data[data['ts_code'] == '000300.SH']
+    data = data[data['ts_code'] == '399673.SZ']
     mp = MyPlot()
     mp.plot_close_value(data, 20090105, 20191104)

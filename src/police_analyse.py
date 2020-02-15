@@ -118,8 +118,8 @@ def evaluate_all(dir_result):
 
 
 if __name__ == '__main__':
-    data_output = '../data/data_analyse_result/result_6250.xlsx'
-    result = evaluate_all('../data/data_ananlyse_6250/')
+    data_output = '../data/data_analyse_result/result.xlsx'
+    result = evaluate_all('../data/data_ananlyse/')
     print(result)
     result.to_excel(data_output)
     #

@@ -1,6 +1,7 @@
 import pandas as pd
 import tushare as ts
 import time
+from ploter import MyPlot
 
 
 def fund_basic_download(path_output):
@@ -61,12 +62,19 @@ if __name__ == '__main__':
     # result.to_excel(path_output)
 
     # 下载可以分析的几种指数的日线行情
-    path_jj_code = '../data/data_jijin/common_fund_index'
-    df_ts_codes = pd.read_csv(path_jj_code)['ts_code'].values.tolist()
-    df_list = []
-    for one_code in df_ts_codes:
-        df_list.append(market_value_download(one_code,'20090101','20191104'))
-    result = pd.concat(df_list)
-    path_output = '../data/data_market/market_value.csv'
-    result.to_csv(path_output)
+    # path_jj_code = '../data/data_jijin/common_fund_index'
+    # df_ts_codes = pd.read_csv(path_jj_code)['ts_code'].values.tolist()
+    # df_list = []
+    # for one_code in df_ts_codes:
+    #     df_list.append(market_value_download('000300','20090101','20191104'))
+    # result = pd.concat(df_list)
+    # path_output = '../data/data_market/market_value.csv'
+    # result.to_csv(path_output)
+    code = '399362.SZ'
+
+    path_output = '../data/data_market/民企100.csv'
+    hs300 = market_value_download(code, '19980101', '20200212')
+    hs300.to_csv(path_output)
+    mp = MyPlot()
+    mp.plot_close_value(hs300, 20090105, 20191104)
 

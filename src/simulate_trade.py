@@ -12,7 +12,7 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 
 
 class SimulateTrade(object):
-    def __init__(self, data_o, e_roi=0.15, value_buy=6250, total_argent=300000):
+    def __init__(self, data_o, e_roi=0.15, value_buy=2000, total_argent=300000):
         self.e_roi = e_roi
         self.total_argent = total_argent
         self.data = data_o.sort_values(by=['ts_code', 'trade_date'])
@@ -45,7 +45,7 @@ class SimulateTrade(object):
         # argent, self.suffix_buy = Policy.buy('_buy_basic', week_day=week_day, week_day_buy=4, value_buy=2000)
         argent = Policy.buy(self, week_day=week_day, value_buy=self.value_buy, bill=self.df_bill,
                             open_value=open_value, dt=dt, close_value=close_value)
-        if argent == 0:
+        if argent == -1:
             return
         else:
             argent = min(argent, self.left_argent)
@@ -163,30 +163,58 @@ class Policy(object):
     # 为了简单，我先按照周四去预估一次去买
     @classmethod
     def _buy_fv_func(cls, simu_stat, fois, **param):
-        if len(simu_stat.df_bill) == 0:
+        if (len(simu_stat.df_bill) == 0) & (param['week_day'] == 4):
             return param['value_buy']
-        mean_hd_value = simu_stat.df_bill['init_close_value'].mean()
-        open_value = param['open_value']
         if param['week_day'] == 4:
-            return param['value_buy'] * (mean_hd_value / open_value) ** 2
+            mean_hd_value = simu_stat.df_bill['init_close_value'].mean()
+            open_value = param['open_value']
+            return param['value_buy'] * (mean_hd_value / open_value) ** fois
         else:
-            return 0
+            return -1
+
+    @classmethod
+    def _buy_fp_func(cls, simu_stat, fois, **param):
+        if (len(simu_stat.df_bill) == 0) & (param['week_day'] == 4):
+            return param['value_buy']
+        if param['week_day'] == 4:
+            mean_hd_value = simu_stat.df_bill['init_close_value'].mean()
+            open_value = param['open_value']
+            return param['value_buy'] * (mean_hd_value / open_value) ** fois
+        else:
+            return -1
+
+
+    @classmethod
+    def _buy_fv_time_func(cls, simu_stat, fois, **param):
+        if (len(simu_stat.df_buy) == 0) & (param['week_day'] == 4):
+            return param['value_buy']
+        if param['week_day'] == 4:
+            mean_hd_value = simu_stat.df_buy['close_value'].mean()
+            length_buy = len(simu_stat.df_buy)
+            open_value = param['open_value']
+            return param['value_buy'] * (1 - 1/math.exp(length_buy))*(mean_hd_value / open_value) ** fois
+        else:
+            return -1
 
     @classmethod
     def _buy_fv(cls, simu_stat, **param):
-        cls._buy_fv_func(simu_stat, 2, **param)
+        return cls._buy_fv_func(simu_stat, 2, **param)
+
+    @classmethod
+    def _buy_fv_time(cls, simu_stat, **param):
+        return cls._buy_fv_time_func(simu_stat, 2, **param)
 
     @classmethod
     def _buy_fv_3(cls, simu_stat, **param):
-        cls._buy_fv_func(simu_stat, 3, **param)
+        return cls._buy_fv_func(simu_stat, 3, **param)
 
     @classmethod
     def _buy_fv_4(cls, simu_stat, **param):
-        cls._buy_fv_func(simu_stat, 4, **param)
+        return cls._buy_fv_func(simu_stat, 4, **param)
 
     @classmethod
     def _buy_fv_10(cls, simu_stat, **param):
-        cls._buy_fv_func(simu_stat, 10, **param)
+        return cls._buy_fv_func(simu_stat, 10, **param)
 
     @classmethod
     def _buy_fv_4_min(cls, simu_stat, **param):
@@ -259,9 +287,9 @@ if __name__ == '__main__':
     data = pd.read_csv(path_data)
     data = data[data['ts_code'] == '000300.SH']
     st = SimulateTrade(data)
-    police_buy_name = '_buy_basic'
+    police_buy_name = '_buy_fv_time'
     police_sold_name = '_sold_basic'
-    path_data = '../data/data_ananlyse_6250/' + police_buy_name + police_sold_name
+    path_data = '../data/data_ananlyse/' + police_buy_name + police_sold_name
     mkdir = lambda x: os.makedirs(x) if not os.path.exists(x) else True  # 目录是否存在,不存在则创建
     mkdir(path_data)
     st.simulate_all(police_buy_name, police_sold_name, path_data + '/')
